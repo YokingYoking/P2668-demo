@@ -1,11 +1,9 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import ElementUI from 'element-ui'
-import './styles.scss'
-import installElementPlus from './plugins/element'
+import { createApp } from "vue";
+import App from "./App.vue";
+import "normalize.css";
 
-Vue.use(ElementUI)
+import installElementPlus from "./plugins/element";
 
-const app = createApp(App)
-installElementPlus(app)
-app.mount('#app')
+const app = createApp(App);
+installElementPlus(app);
+app.mount("#app");

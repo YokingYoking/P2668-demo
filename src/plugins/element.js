@@ -1,5 +1,5 @@
-import { ElButton } from 'element-plus'
+import { ElButton } from "element-plus";
 
 export default (app) => {
-  app.use(ElButton)
-}
+  app.use(ElButton);
+};
