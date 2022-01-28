@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <h3>{{ title }}:</h3>
-    <p>{{ current }} A</p>
+    <h4 id="current">{{ current }} A</h4>
     <p>Measurement range: ±{{ hint }} A</p>
   </div>
 </template>
@@ -27,10 +27,8 @@ export default {
   data() {
     return {};
   },
-  methods: {
-
-  },
-}
+  methods: {},
+};
 </script>
 
 <style lang="scss" scoped>
@@ -41,5 +39,10 @@ export default {
   width: 25vw;
   border: 1px black solid;
   margin-bottom: 20px;
+  padding: 10px;
+}
+
+#current {
+  align-self: center;
 }
 </style>
