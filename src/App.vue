@@ -18,10 +18,15 @@
         <div class="btn-set">
           <el-button>Test Dataset 1</el-button>
           <el-button>Test Dataset 2</el-button>
-          <el-button type="primary" id="start-btn">START</el-button>
+          <el-button type="primary" id="start-btn" @click="startOnClick()"
+            >START</el-button
+          >
         </div>
       </el-main>
       <el-aside id="aside">
+        <el-upload action="" :on-change="handleChange" :auto-upload="false">
+          <el-button size="small" type="primary">点击上传</el-button>
+        </el-upload>
         <el-table :data="tableData" border style="width: 100%">
           <el-table-column
             v-for="column in columns"
@@ -37,6 +42,8 @@
 
 <script>
 import Monitor from "@/components/Monitor/index.vue";
+import * as XLSX from "xlsx";
+import { reactive } from "vue";
 
 export default {
   name: "App",
@@ -69,19 +76,19 @@ export default {
       ],
       columns: [
         {
-          prop: "findex",
+          prop: "FINDEX",
           label: "FINDEX",
         },
         {
-          prop: "fieldName",
+          prop: "FIELD NAME",
           label: "FIELD NAME",
         },
         {
-          prop: "description",
+          prop: "DESCRIPTION",
           label: "DESCRIPTION",
         },
         {
-          prop: "dataType",
+          prop: "DATA TYPE",
           label: "DATA TYPE",
         },
         {
@@ -90,39 +97,88 @@ export default {
         },
       ],
       score: 0.1,
-      tableData: [
-        {
-          findex: "1",
-          fieldName: "Data Accuracy IDex",
-          description: "Data Accuracy Level",
-          dataType: "UInt32",
-          value: "",
-        },
-        {
-          findex: "2",
-          fieldName: "DISID",
-          description: "DISID",
-          dataType: "UInt32",
-          value: "0",
-        },
-        {
-          findex: "3",
-          fieldName: "Data Accuracy IDex",
-          description: "Data Accuracy Level",
-          dataType: "UInt32",
-          value: "1",
-        },
-        {
-          findex: "4",
-          fieldName: "Data Accuracy IDex",
-          description: "Data Accuracy Level",
-          dataType: "UInt32",
-          value: "1",
-        },
-      ],
+      file: {},
+      temp: [],
     };
   },
-  methods: {},
+  methods: {
+    handleChange(file) {
+      this.file = file.raw;
+    },
+    startOnClick() {
+      this.importfxx(this.file);
+      console.log(this.temp);
+      this.tableData[0] = this.temp[0];
+    },
+    importfxx(obj) {
+      let _this = this;
+      let f = obj;
+      let reader = new FileReader();
+      FileReader.prototype.readAsBinaryString = function (f) {
+        let binary = "";
+        let reader = new FileReader();
+        reader.onload = function () {
+          var bytes = new Uint8Array(reader.result);
+          var length = bytes.byteLength;
+          for (var i = 0; i < length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+
+          let wb = XLSX.read(binary, {
+            type: "binary",
+          });
+
+          let outdata = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[2]]); //outdata就是你想要的东西
+          console.log(outdata);
+          _this.temp = outdata;
+          // console.log(_this.tableData);
+        };
+        console.log('sda');
+        reader.readAsArrayBuffer(f);
+      };
+
+      reader.readAsBinaryString(f);
+    },
+  },
+
+  mounted() {
+    // console.log(this.tableData); // 是一个proxy
+  },
+  setup() {
+    const tableData = reactive([
+      {
+        FINDEX: "1",
+        "FIELD NAME": "Data Accuracy IDex",
+        DESCRIPTION: "Data Accuracy Level",
+        "DATA TYPE": "UInt32",
+        VALUE: "",
+      },
+      {
+        FINDEX: "1",
+        "FIELD NAME": "Data Accuracy IDex",
+        DESCRIPTION: "Data Accuracy Level",
+        "DATA TYPE": "UInt32",
+        VALUE: "",
+      },
+      {
+        FINDEX: "1",
+        "FIELD NAME": "Data Accuracy IDex",
+        DESCRIPTION: "Data Accuracy Level",
+        "DATA TYPE": "UInt32",
+        VALUE: "",
+      },
+      {
+        FINDEX: "1",
+        "FIELD NAME": "Data Accuracy IDex",
+        DESCRIPTION: "Data Accuracy Level",
+        "DATA TYPE": "UInt32",
+        VALUE: "",
+      },
+    ]);
+    return {
+      tableData,
+    };
+  },
 };
 </script>
 

@@ -10,7 +10,8 @@
   "dependencies": {
     "element-plus": "^1.0.2-beta.28",
     "normalize.css": "^8.0.1",
-    "vue": "^3.2.27"
+    "vue": "^3.2.27",
+    "xlsx": "^0.17.5"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",
