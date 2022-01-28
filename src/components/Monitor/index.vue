@@ -16,7 +16,7 @@ export default {
       required: true,
     },
     current: {
-      type: Number,
+      type: String,
       required: true,
     },
     hint: {

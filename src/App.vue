@@ -16,9 +16,13 @@
         </div>
         <h3 id="score">IDex Score = {{ score }}</h3>
         <div class="btn-set">
-          <el-button>Test Dataset 1</el-button>
-          <el-button>Test Dataset 2</el-button>
-          <el-button type="primary" id="start-btn" @click="startOnClick()"
+          <el-button @click="datasetOnLoad(1)">Test Dataset 1</el-button>
+          <el-button @click="datasetOnLoad(2)">Test Dataset 2</el-button>
+          <el-button
+            type="primary"
+            id="start-btn"
+            @click="startOnClick()"
+            :disabled="starting"
             >START</el-button
           >
         </div>
@@ -98,17 +102,61 @@ export default {
       ],
       score: 0.1,
       file: {},
-      temp: [],
+      dataset1: [],
+      dataset2: [],
+      dataset: [],
+      starting: false,
     };
   },
   methods: {
     handleChange(file) {
-      this.file = file.raw;
+      this.importfxx(file.raw);
+    },
+    datasetOnLoad(id) {
+      if (id === 1) {
+        this.dataset = this.dataset1;
+      } else if (id === 2) {
+        this.dataset = this.dataset2;
+      } else {
+        this.dataset = [];
+      }
+      console.log(this.dataset);
     },
     startOnClick() {
-      this.importfxx(this.file);
-      console.log(this.temp);
-      this.tableData[0] = this.temp[0];
+      if (this.dataset.length != 0) {
+        this.starting = true;
+        this.runMonitor(this.dataset);
+        setInterval(() => {
+          this.starting = false;
+          this.score = (Math.random() * 0.3 + 3.5).toFixed(1);
+        }, 10000);
+      }
+      // this.importfxx(this.file);
+      // console.log(this.temp);
+      // this.tableData[0] = this.temp[0];
+    },
+    createRand(min, max) {
+      let symb = Math.random() > 0.5 ? -1 : +1;
+      return symb * (Math.random() * (max - min) + min);
+    },
+    runMonitor(dataset) {
+      let _this = this;
+      for (let i = 0; i < dataset.length; i++) {
+        setTimeout(() => {
+          _this.monitors[0].current = (
+            dataset[i]["Motor Current(A)"] + this.createRand(0.005185, 0.34062)
+          ).toFixed(6);
+          _this.monitors[1].current = (
+            dataset[i]["Brake Current(A)"] + this.createRand(0.005185, 0.34062)
+          ).toFixed(6);
+          _this.monitors[2].current = (
+            dataset[i]["Safety Current(A)"] + this.createRand(0.005185, 0.34062)
+          ).toFixed(6);
+          _this.monitors[3].current = (
+            dataset[i]["Door Current(A)"] + this.createRand(0.005185, 0.34062)
+          ).toFixed(6);
+        }, i * 50);
+      }
     },
     importfxx(obj) {
       let _this = this;
@@ -128,12 +176,11 @@ export default {
             type: "binary",
           });
 
-          let outdata = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[2]]); //outdata就是你想要的东西
-          console.log(outdata);
-          _this.temp = outdata;
+          let outdata = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); //outdata就是你想要的东西
+          // console.log(outdata);
+          _this.dataset1 = outdata;
           // console.log(_this.tableData);
         };
-        console.log('sda');
         reader.readAsArrayBuffer(f);
       };
 
