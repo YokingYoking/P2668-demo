@@ -1,0 +1,25 @@
+version: "3"
+services:
+  # ccback:
+  #   container_name: ccback
+  #   restart: always
+  #   build:
+  #     context: ./                       
+  #     dockerfile: ./django/Dockerfile
+  #   command: "python3 django/manage.py runserver 0.0.0.0:8000"
+  #   volumes:
+  #     - .:/app
+  #   ports:
+  #     - "8000:8000"
+  p2668demo:
+    container_name: p2668demo
+    restart: always
+    build:
+      context: ./                       
+      dockerfile: ./vue/Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8080:80"
+    # depends_on:
+    #   - "ccback"
