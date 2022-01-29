@@ -3,7 +3,7 @@
     <el-header id="header">
       <h2>IEEE P2668 for Lift Safety</h2>
     </el-header>
-    <el-container>
+    <el-container id="body">
       <el-main id="main">
         <div id="monitors">
           <Monitor
@@ -31,7 +31,7 @@
         <el-upload action="" :on-change="handleChange" :auto-upload="false">
           <el-button size="small" type="primary">点击上传</el-button>
         </el-upload>
-        <el-table :data="tableData" border style="width: 100%">
+        <el-table :data="tableData" border style="width: 100%;" max-height="500">
           <el-table-column
             v-for="column in columns"
             :key="column.index"
@@ -45,9 +45,16 @@
 </template>
 
 <script>
+const RUNNING_TIME = 10000; // running time config
+const DATASET1_MIN_CURRENT = 0.005185;
+const DATASET1_MAX_CURRENT = 0.034062;
+const DATASET2_MIN_CURRENT = 0.305185;
+const DATASET2_MAX_CURRENT = 5.734062;
+
 import Monitor from "@/components/Monitor/index.vue";
 import * as XLSX from "xlsx";
-import { reactive } from "vue";
+// import { ElMessage } from 'element-plus';
+// import { reactive } from "vue";
 
 export default {
   name: "App",
@@ -56,29 +63,29 @@ export default {
   },
   data() {
     return {
-      monitors: [
+      monitors: [ // monitors config
         {
           title: "Motor Current",
-          current: 1,
+          current: '-',
           hint: 100,
         },
         {
           title: "Brake Current",
-          current: 1,
+          current: '-',
           hint: 5,
         },
         {
           title: "Safety Current",
-          current: 1,
+          current: '-',
           hint: 5,
         },
         {
           title: "Door Current",
-          current: 1,
+          current: '-',
           hint: 5,
         },
       ],
-      columns: [
+      columns: [ // table config
         {
           prop: "FINDEX",
           label: "FINDEX",
@@ -96,66 +103,86 @@ export default {
           label: "DATA TYPE",
         },
         {
-          prop: "value",
+          prop: "VALUE",
           label: "VALUE",
         },
       ],
-      score: 0.1,
-      file: {},
+      score: '-',
       dataset1: [],
       dataset2: [],
-      dataset: [],
-      starting: false,
+      currentDataset: 0,
+      tableData: [],
+      starting: false, // is the process running
     };
   },
   methods: {
     handleChange(file) {
-      this.importfxx(file.raw);
+      this.importfxx(file.raw); // import xlsx
     },
     datasetOnLoad(id) {
-      if (id === 1) {
-        this.dataset = this.dataset1;
-      } else if (id === 2) {
-        this.dataset = this.dataset2;
-      } else {
-        this.dataset = [];
-      }
-      console.log(this.dataset);
+      this.tableData = this.temp; // set current tableData
+      console.log(this.tableData);
+      this.currentDataset = id;
+      // ElMessage({
+      //   message: 'Dataset1 Loaded.',
+      //   type: 'success',
+      // })
     },
     startOnClick() {
-      if (this.dataset.length != 0) {
-        this.starting = true;
-        this.runMonitor(this.dataset);
-        setInterval(() => {
-          this.starting = false;
-          this.score = (Math.random() * 0.3 + 3.5).toFixed(1);
-        }, 10000);
+      let _this = this;
+      if (this.currentDataset != 0) {
+        switch(_this.currentDataset) {
+          case 1: {
+            _this.runMonitor(_this.dataset1);
+            break;
+          }
+          case 2: {
+            _this.runMonitor(_this.dataset2);
+            break;
+          }
+          default: break;
+        }
+        _this.starting = true;
+        setTimeout(() => {
+          _this.starting = false;
+          _this.score = (Math.random() * 0.3 + 3.5).toFixed(1); // create a random score
+          console.log(_this.score)
+          _this.tableData[0]["VALUE"] = _this.score;
+        }, RUNNING_TIME);
       }
-      // this.importfxx(this.file);
-      // console.log(this.temp);
-      // this.tableData[0] = this.temp[0];
     },
     createRand(min, max) {
       let symb = Math.random() > 0.5 ? -1 : +1;
       return symb * (Math.random() * (max - min) + min);
     },
+    setCurrent(id, i, dataset) { // monitor's id, data's id
+     let _this = this;
+    let min = 0;
+    let max = 1;
+    if(_this.currentDataset === 1) {
+      min = DATASET1_MIN_CURRENT;
+      max = DATASET1_MAX_CURRENT;
+    } else if (_this.currentDataset === 2) {
+      min = DATASET2_MIN_CURRENT;
+      max = DATASET2_MAX_CURRENT;
+    } else {
+      min = 0;
+      max = 1;
+    }
+     
+      let monitorTitle =  _this.monitors[id].title + "(A)";
+        _this.monitors[id].current = (
+            dataset[i][monitorTitle] + this.createRand(min, max)
+          ).toFixed(6);
+    },
     runMonitor(dataset) {
       let _this = this;
       for (let i = 0; i < dataset.length; i++) {
         setTimeout(() => {
-          _this.monitors[0].current = (
-            dataset[i]["Motor Current(A)"] + this.createRand(0.005185, 0.34062)
-          ).toFixed(6);
-          _this.monitors[1].current = (
-            dataset[i]["Brake Current(A)"] + this.createRand(0.005185, 0.34062)
-          ).toFixed(6);
-          _this.monitors[2].current = (
-            dataset[i]["Safety Current(A)"] + this.createRand(0.005185, 0.34062)
-          ).toFixed(6);
-          _this.monitors[3].current = (
-            dataset[i]["Door Current(A)"] + this.createRand(0.005185, 0.34062)
-          ).toFixed(6);
-        }, i * 50);
+          _this.monitors.forEach((e, index) => {
+            this.setCurrent(index, i, dataset)
+          })
+        }, i * RUNNING_TIME / dataset.length);
       }
     },
     importfxx(obj) {
@@ -176,10 +203,12 @@ export default {
             type: "binary",
           });
 
-          let outdata = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); //outdata就是你想要的东西
-          // console.log(outdata);
-          _this.dataset1 = outdata;
-          // console.log(_this.tableData);
+          let dataset1 = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); // import dataset1
+          _this.dataset1 = dataset1;
+          let dataset2 = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[1]]); // import dataset 2
+          _this.dataset2 = dataset2;
+          let tableData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[2]]); // import DIS
+          _this.temp = tableData;
         };
         reader.readAsArrayBuffer(f);
       };
@@ -187,49 +216,19 @@ export default {
       reader.readAsBinaryString(f);
     },
   },
-
-  mounted() {
-    // console.log(this.tableData); // 是一个proxy
-  },
-  setup() {
-    const tableData = reactive([
-      {
-        FINDEX: "1",
-        "FIELD NAME": "Data Accuracy IDex",
-        DESCRIPTION: "Data Accuracy Level",
-        "DATA TYPE": "UInt32",
-        VALUE: "",
-      },
-      {
-        FINDEX: "1",
-        "FIELD NAME": "Data Accuracy IDex",
-        DESCRIPTION: "Data Accuracy Level",
-        "DATA TYPE": "UInt32",
-        VALUE: "",
-      },
-      {
-        FINDEX: "1",
-        "FIELD NAME": "Data Accuracy IDex",
-        DESCRIPTION: "Data Accuracy Level",
-        "DATA TYPE": "UInt32",
-        VALUE: "",
-      },
-      {
-        FINDEX: "1",
-        "FIELD NAME": "Data Accuracy IDex",
-        DESCRIPTION: "Data Accuracy Level",
-        "DATA TYPE": "UInt32",
-        VALUE: "",
-      },
-    ]);
-    return {
-      tableData,
-    };
-  },
 };
 </script>
 
 <style lang="scss" scoped>
+
+#header {
+  height: 10vh;
+}
+
+#body {
+  height: 90vh;
+}
+
 #monitors {
   display: flex;
   flex-direction: row;
