@@ -16,7 +16,7 @@ services:
     restart: always
     build:
       context: ./                       
-      dockerfile: ./vue/Dockerfile
+      dockerfile: ./Dockerfile
     volumes:
       - .:/app
     ports:
