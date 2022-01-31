@@ -8,6 +8,7 @@
     "preview": "vite preview --port 5050"
   },
   "dependencies": {
+    "axios": "^0.25.0",
     "element-plus": "^1.0.2-beta.28",
     "normalize.css": "^8.0.1",
     "vue": "^3.2.27",

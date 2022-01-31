@@ -29,9 +29,9 @@
       </el-main>
       <el-aside id="aside">
         <el-upload action="" :on-change="handleChange" :auto-upload="false">
-          <el-button size="small" type="primary">点击上传</el-button>
+          <el-button size="small" type="primary">Upload</el-button>
         </el-upload>
-        <el-table :data="tableData" border style="width: 100%;" max-height="500">
+        <el-table :data="tableData" border style="width: 100%" max-height="600">
           <el-table-column
             v-for="column in columns"
             :key="column.index"
@@ -50,10 +50,17 @@ const DATASET1_MIN_CURRENT = 0.005185;
 const DATASET1_MAX_CURRENT = 0.034062;
 const DATASET2_MIN_CURRENT = 0.305185;
 const DATASET2_MAX_CURRENT = 5.734062;
+const DATASET1_MIN_SCORE = 3.5;
+const DATASET1_MAX_SCORE = 3.8;
+const DATASET2_MIN_SCORE = 2.0;
+const DATASET2_MAX_SCORE = 2.5;
 
 import Monitor from "@/components/Monitor/index.vue";
 import * as XLSX from "xlsx";
-// import { ElMessage } from 'element-plus';
+import { ElMessage } from "element-plus";
+import axios from "axios";
+axios.defaults.baseURL = "http://127.0.0.1:5000";
+
 // import { reactive } from "vue";
 
 export default {
@@ -63,29 +70,31 @@ export default {
   },
   data() {
     return {
-      monitors: [ // monitors config
+      monitors: [
+        // monitors config
         {
           title: "Motor Current",
-          current: '-',
+          current: "-",
           hint: 100,
         },
         {
           title: "Brake Current",
-          current: '-',
+          current: "-",
           hint: 5,
         },
         {
           title: "Safety Current",
-          current: '-',
+          current: "-",
           hint: 5,
         },
         {
           title: "Door Current",
-          current: '-',
+          current: "-",
           hint: 5,
         },
       ],
-      columns: [ // table config
+      columns: [
+        // table config
         {
           prop: "FINDEX",
           label: "FINDEX",
@@ -107,82 +116,129 @@ export default {
           label: "VALUE",
         },
       ],
-      score: '-',
+      score: "-",
       dataset1: [],
       dataset2: [],
-      currentDataset: 0,
+      currentDataset: [],
+      currentDatasetId: 0, // current Dataset ID
       tableData: [],
       starting: false, // is the process running
+      minCurrent: 0,
+      maxCurrent: 0,
+      minScore: 0,
+      maxScore: 0,
     };
+  },
+  watch: {
+    currentDatasetId(val) {
+      let _this = this;
+      this.score = "-";
+      this.monitors.forEach((e) => {
+        e.current = "-";
+      });
+      if (this.tableData && this.tableData.length !== 0) {
+        this.tableData[0]["VALUE"] = "";
+      }
+      switch (val) {
+        case 1: {
+          _this.minCurrent = DATASET1_MIN_CURRENT;
+          _this.maxCurrent = DATASET1_MAX_CURRENT;
+          _this.minScore = DATASET1_MIN_SCORE;
+          _this.maxScore = DATASET1_MAX_SCORE;
+          _this.currentDataset = _this.dataset1;
+          break;
+        }
+        case 2: {
+          _this.minCurrent = DATASET2_MIN_CURRENT;
+          _this.maxCurrent = DATASET2_MAX_CURRENT;
+          _this.minScore = DATASET2_MIN_SCORE;
+          _this.maxScore = DATASET2_MAX_SCORE;
+          _this.currentDataset = _this.dataset2;
+          break;
+        }
+        default:
+          break;
+      }
+      console.log(val);
+    },
+  },
+  setup() {
+    axios.get("/p2688").then(function (response) {
+      console.log(response.data);
+      console.log(response.status);
+      console.log(response.statusText);
+      console.log(response.headers);
+      console.log(response.config);
+    });
   },
   methods: {
     handleChange(file) {
       this.importfxx(file.raw); // import xlsx
     },
     datasetOnLoad(id) {
-      this.tableData = this.temp; // set current tableData
-      console.log(this.tableData);
-      this.currentDataset = id;
-      // ElMessage({
-      //   message: 'Dataset1 Loaded.',
-      //   type: 'success',
-      // })
+      if (
+        this.dataset1 &&
+        this.dataset1.length !== 0 &&
+        this.dataset2 &&
+        this.dataset2.length !== 0
+      ) {
+        this.tableData = this.temp; // set current tableData
+        this.currentDatasetId = id;
+        ElMessage({
+          message: `Dataset${id} Loaded.`,
+          type: "success",
+        });
+      } else {
+        ElMessage({
+          message: `Dataset does not exist.`,
+          type: "error",
+        });
+      }
     },
     startOnClick() {
       let _this = this;
-      if (this.currentDataset != 0) {
-        switch(_this.currentDataset) {
-          case 1: {
-            _this.runMonitor(_this.dataset1);
-            break;
-          }
-          case 2: {
-            _this.runMonitor(_this.dataset2);
-            break;
-          }
-          default: break;
-        }
+      if (this.currentDatasetId != 0 && this.currentDataset.length !== 0) {
+        _this.runMonitor(_this.currentDataset);
         _this.starting = true;
         setTimeout(() => {
           _this.starting = false;
-          _this.score = (Math.random() * 0.3 + 3.5).toFixed(1); // create a random score
-          console.log(_this.score)
+          _this.score = _this
+            .createRand(_this.minScore, _this.maxScore, false)
+            .toFixed(1); // create a random score
+          // console.log(_this.score);
           _this.tableData[0]["VALUE"] = _this.score;
         }, RUNNING_TIME);
+      } else {
+        ElMessage({
+          message: `No Dataset loaded now.`,
+          type: "error",
+        });
       }
     },
-    createRand(min, max) {
-      let symb = Math.random() > 0.5 ? -1 : +1;
+    createRand(min, max, isSymb) {
+      let symb = 1; //
+      if (isSymb) {
+        symb = Math.random() > 0.5 ? -1 : +1;
+      }
       return symb * (Math.random() * (max - min) + min);
     },
-    setCurrent(id, i, dataset) { // monitor's id, data's id
-     let _this = this;
-    let min = 0;
-    let max = 1;
-    if(_this.currentDataset === 1) {
-      min = DATASET1_MIN_CURRENT;
-      max = DATASET1_MAX_CURRENT;
-    } else if (_this.currentDataset === 2) {
-      min = DATASET2_MIN_CURRENT;
-      max = DATASET2_MAX_CURRENT;
-    } else {
-      min = 0;
-      max = 1;
-    }
-     
-      let monitorTitle =  _this.monitors[id].title + "(A)";
-        _this.monitors[id].current = (
-            dataset[i][monitorTitle] + this.createRand(min, max)
-          ).toFixed(6);
+    setCurrent(id, i) {
+      // monitor's id, data's id
+      let _this = this;
+      let monitorTitle = _this.monitors[id].title + "(A)";
+      _this.monitors[id].current = (
+        _this.currentDataset[i][monitorTitle] +
+        this.createRand(_this.minCurrent, _this.maxCurrent, true)
+      ).toFixed(6);
     },
     runMonitor(dataset) {
       let _this = this;
       for (let i = 0; i < dataset.length; i++) {
         setTimeout(() => {
           _this.monitors.forEach((e, index) => {
-            this.setCurrent(index, i, dataset)
-          })
-        }, i * RUNNING_TIME / dataset.length);
+            this.setCurrent(index, i);
+          });
+        }, (i * RUNNING_TIME) / dataset.length);
       }
     },
     importfxx(obj) {
@@ -220,7 +276,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 #header {
   height: 10vh;
 }
