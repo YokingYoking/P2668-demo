@@ -67,7 +67,7 @@ const DATASET2_MAX_SCORE = 2.5;
 import Monitor from "@/components/Monitor/index.vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
-axios.defaults.baseURL = "http://192.168.1.3:5000";
+axios.defaults.baseURL = "http://iotlab.asuscomm.com:30035";
 
 import { reactive, watch, onMounted } from "vue";
 
